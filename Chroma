@@ -1,32 +1,21 @@
 import pandas as pd
 import chromadb
 
-df=pd.read_csv("wiki_movie_plots_deduped.csv",nrows=100)
-df_mini = df.head(100)  
+# 1. Leemos solo 100 filas del CSV
+df = pd.read_csv("wiki_movie_plots_deduped.csv", nrows=100)
 
+# 2. Conectamos Chroma a una carpeta fija llamada 'cine_db'
+chroma_client = chromadb.PersistentClient(path="./cine_db")
+collection = chroma_client.get_or_create_collection(name="peliculas")
 
-chroma_client=chromadb.PersistentClient(path="./cine_db")
-collection=chroma_client.get_or_create_collection(name="peliculas")
+print("⏳ Guardando 100 películas en Chroma...")
 
-
-for index,row in df_mini.iterrows():
+# 3. Guardamos los datos
+for index, row in df.iterrows():
     collection.add(
         documents=[row['Plot']],
-        metadatas=[{"titulo":row['Title'],"anio":int(row['Release Year'])}],
+        metadatas=[{"titulo": row['Title'], "anio": int(row['Release Year'])}],
         ids=[str(index)]
     )
 
-# 1. Hacemos una pregunta en lenguaje natural
-consulta = "A movie about spaceships, space battles or aliens"
-print(f"\n🔍 Buscando películas relacionadas con: '{consulta}'...\n")
-
-resultados = collection.query(
-    query_texts=[consulta],
-    n_results=1
-)
-
-for i in range(len(resultados['documents'][0])):
-    print(f"🎬 Película {i+1}:")
-    print(f"📄 Sinopsis: {resultados['documents'][0:][i]}")
-    print(f"📋 Metadatos: {resultados['metadatas'][0][i]}")
-    print("-" * 50)
+print("✅ ¡Películas guardadas con éxito en la carpeta './cine_db'!")
