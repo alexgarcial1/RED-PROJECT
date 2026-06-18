@@ -1,0 +1,32 @@
+import pandas as pd
+import chromadb
+
+df=pd.read_csv("wiki_movie_plots_deduped.csv",nrows=100)
+df_mini = df.head(100)  
+
+
+chroma_client=chromadb.PersistentClient(path="./cine_db")
+collection=chroma_client.get_or_create_collection(name="peliculas")
+
+
+for index,row in df_mini.iterrows():
+    collection.add(
+        documents=[row['Plot']],
+        metadatas=[{"titulo":row['Title'],"anio":int(row['Release Year'])}],
+        ids=[str(index)]
+    )
+
+# 1. Hacemos una pregunta en lenguaje natural
+consulta = "A movie about spaceships, space battles or aliens"
+print(f"\n🔍 Buscando películas relacionadas con: '{consulta}'...\n")
+
+resultados = collection.query(
+    query_texts=[consulta],
+    n_results=2
+)
+
+for i in range(len(resultados['documents'][0])):
+    print(f"🎬 Película {i+1}:")
+    print(f"📄 Sinopsis: {resultados['documents'][0:][i]}")
+    print(f"📋 Metadatos: {resultados['metadatas'][0][i]}")
+    print("-" * 50)
